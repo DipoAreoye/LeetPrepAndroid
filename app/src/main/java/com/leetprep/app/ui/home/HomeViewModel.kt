@@ -1,4 +1,4 @@
-package com.leetprep.app.ui.view
+package com.leetprep.app.ui.home
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

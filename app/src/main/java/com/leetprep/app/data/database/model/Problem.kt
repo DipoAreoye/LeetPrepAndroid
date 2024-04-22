@@ -12,4 +12,14 @@ data class Problem(
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "desc") val desc: String,
     @ColumnInfo(name = "difficulty") val difficulty: Int
-)
+
+) {
+    fun getDifficultyString(): String {
+        return when (difficulty) {
+            1 -> "Easy"
+            2-> "Medium"
+            3 -> "Hard"
+            else -> ""
+        }
+    }
+}

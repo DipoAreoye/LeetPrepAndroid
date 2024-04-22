@@ -1,6 +1,5 @@
 package com.leetprep.app.data.network
 
-
 import com.leetprep.app.BuildConfig
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.gotrue.Auth
