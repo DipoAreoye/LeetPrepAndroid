@@ -9,13 +9,12 @@ import com.leetprep.app.data.database.model.Problem
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface ProblemsDao {
-
+interface ProblemDao {
     @Query("SELECT * FROM problem")
     fun getAll(): Flow<List<Problem>>
 
     @Query("SELECT * FROM problem WHERE id = :id")
-    fun problemWithId(id: String): Flow<Problem>
+    fun problemWithId(id: Long): Flow<Problem>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(entities: Collection<Problem>)

@@ -5,7 +5,8 @@ import androidx.room.Room
 import com.leetprep.app.data.LocalProblemStore
 import com.leetprep.app.data.ProblemStore
 import com.leetprep.app.data.database.LeetPrepDatabase
-import com.leetprep.app.data.database.dao.ProblemsDao
+import com.leetprep.app.data.database.dao.ProblemDao
+import com.leetprep.app.data.database.dao.SubmissionDao
 import com.leetprep.app.data.network.APIService
 import dagger.Module
 import dagger.Provides
@@ -33,13 +34,20 @@ object DiModule {
     @Singleton
     fun provideProblemsDao(
         database: LeetPrepDatabase
-    ): ProblemsDao = database.problemsDao()
+    ): ProblemDao = database.problemsDao()
+
+    @Provides
+    @Singleton
+    fun provideSubmissionsDao(
+        database: LeetPrepDatabase
+    ): SubmissionDao = database.submissionDao()
 
     @Provides
     @Singleton
     fun provideProblemsStore(
-        problemsDao: ProblemsDao
-    ): ProblemStore = LocalProblemStore(problemsDao)
+        problemDao: ProblemDao,
+        submissionDao: SubmissionDao
+    ): ProblemStore = LocalProblemStore(problemDao, submissionDao)
 
     @Provides
     @Singleton

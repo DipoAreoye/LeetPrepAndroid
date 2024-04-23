@@ -1,6 +1,7 @@
 package com.leetprep.app.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,16 +15,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leetprep.app.data.database.model.Problem
-import com.leetprep.app.ui.theme.LeetPrepAndroidTheme
 
 @Composable
-fun ProblemListScreen(viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    viewModel: HomeViewModel = hiltViewModel(),
+    navigateToProblemDetail: (Int) -> Unit
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     Scaffold(
         topBar = {
@@ -32,7 +34,7 @@ fun ProblemListScreen(viewModel: HomeViewModel = hiltViewModel()) {
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding), userScrollEnabled = true) {
             itemsIndexed(state.problems) {index, item ->
-                ProblemListItem(item, index)
+                ProblemListItem(item, index, navigateToProblemDetail)
             }
         }
     }
@@ -54,9 +56,9 @@ fun homeAppBar() {
     }
 }
 @Composable
-fun ProblemListItem(problem: Problem, index: Int) {
+fun ProblemListItem(problem: Problem, index: Int, navigateToProblem: (Int) -> Unit) {
     val bgColor = if (index % 2 == 0)
-        Color.Black else Color.Gray
+        Color.Gray else Color.Black
 
     val problemColor = when (problem.difficulty) {
         1 -> Color.Green
@@ -69,6 +71,9 @@ fun ProblemListItem(problem: Problem, index: Int) {
         .fillMaxWidth()
         .background(bgColor)
         .padding(12.dp)
+        .clickable {
+            navigateToProblem(problem.id)
+        }
     ) {
         Column(modifier = Modifier
             .weight(2f),
@@ -87,23 +92,6 @@ fun ProblemListItem(problem: Problem, index: Int) {
                 text = problem.getDifficultyString(),
                 color = problemColor
             )
-        }
-    }
-}
-
-@Preview
-@Composable
-fun appBarPreview() {
-    homeAppBar()
-}
-
-@Preview()
-@Composable
-fun ProblemListPreview() {
-    LeetPrepAndroidTheme {
-        Column {
-            ProblemListItem(problem = Problem(1, "Two Sum", "test", difficulty = 1), 0)
-            ProblemListItem(problem = Problem(1, "Valid Palindrome", "test", difficulty = 2), 1)
         }
     }
 }
