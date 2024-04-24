@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 sealed interface ProblemDetailViewSate {
     data object Loading : ProblemDetailViewSate
@@ -24,7 +25,7 @@ sealed interface ProblemDetailViewSate {
 
 @HiltViewModel(assistedFactory = ProblemDetailViewModel.Factory::class)
 class ProblemDetailViewModel @AssistedInject constructor(
-    problemStore: ProblemStore,
+    val problemStore: ProblemStore,
     @Assisted private val problemId: Long,
 ) : ViewModel() {
 
@@ -42,6 +43,28 @@ class ProblemDetailViewModel @AssistedInject constructor(
          started = SharingStarted.Eagerly,
          initialValue = ProblemDetailViewSate.Loading
      )
+
+     fun updateSubmission(text: String) {
+        val currentState = state.value
+        if (currentState is ProblemDetailViewSate.Ready) {
+            val newSubmission = when {
+                 currentState.submission != null -> {
+                    val submission = currentState.submission
+                    submission.copy(text = text)
+                }
+                else -> {
+                    Submission(
+                        text = text,
+                        problemId = problemId
+                    )
+                }
+            }
+
+            viewModelScope.launch {
+                problemStore.updateSubmission(newSubmission)
+            }
+        }
+    }
     @AssistedFactory
     interface Factory {
         fun create(problemId: Long): ProblemDetailViewModel

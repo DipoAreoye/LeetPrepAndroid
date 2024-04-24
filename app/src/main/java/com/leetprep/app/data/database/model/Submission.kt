@@ -25,6 +25,6 @@ import kotlinx.serialization.Serializable
 data class Submission(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "text") val text: String,
-    @ColumnInfo(name = "problem_id") val problemId: Int,
-    @ColumnInfo(name = "feedback") val feedbackId: Long,
+    @ColumnInfo(name = "problem_id") val problemId: Long,
+    @ColumnInfo(name = "feedback") val feedbackId: Long? = null,
 )

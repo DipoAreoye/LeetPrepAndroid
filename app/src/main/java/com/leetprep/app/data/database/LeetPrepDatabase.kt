@@ -9,7 +9,7 @@ import com.leetprep.app.data.database.model.Problem
 import com.leetprep.app.data.database.model.Submission
 import com.leetprep.app.data.database.model.SubmissionFeedback
 
-@Database(entities = [Problem::class, Submission::class, SubmissionFeedback::class], version = 3)
+@Database(entities = [Problem::class, Submission::class, SubmissionFeedback::class], version = 4)
 abstract class LeetPrepDatabase : RoomDatabase() {
     abstract fun problemsDao() : ProblemDao
     abstract fun submissionDao() : SubmissionDao

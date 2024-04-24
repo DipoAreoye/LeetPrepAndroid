@@ -16,7 +16,7 @@ interface ProblemDao {
     @Query("SELECT * FROM problem WHERE id = :id")
     fun problemWithId(id: Long): Flow<Problem>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.NONE)
     suspend fun insertAll(entities: Collection<Problem>)
 
     @Delete

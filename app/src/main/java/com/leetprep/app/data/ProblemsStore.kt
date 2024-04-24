@@ -13,6 +13,7 @@ interface ProblemStore {
     fun submissionWithProblemId(id: Long): Flow<Submission>
     fun problemsSortedByDifficulty(): Flow<List<Problem>>
     suspend fun addProblems(problems: List<Problem>)
+    suspend fun updateSubmission(submission: Submission)
 }
 
 class LocalProblemStore (
@@ -30,5 +31,9 @@ class LocalProblemStore (
     }
     override suspend fun addProblems(problems: List<Problem>) {
         problemDao.insertAll(problems);
+    }
+
+    override suspend fun updateSubmission(submission: Submission) {
+        submissionDao.insert(submission)
     }
 }
