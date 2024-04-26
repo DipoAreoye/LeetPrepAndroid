@@ -7,6 +7,7 @@ import com.leetprep.app.data.ProblemStore
 import com.leetprep.app.data.database.LeetPrepDatabase
 import com.leetprep.app.data.database.dao.ProblemDao
 import com.leetprep.app.data.database.dao.SubmissionDao
+import com.leetprep.app.data.database.dao.SubmissionFeedbackDao
 import com.leetprep.app.data.network.APIService
 import dagger.Module
 import dagger.Provides
@@ -44,10 +45,17 @@ object DiModule {
 
     @Provides
     @Singleton
+    fun provideSubmissionsFeedbackDao(
+        database: LeetPrepDatabase
+    ): SubmissionFeedbackDao = database.submissionFeedbackDao()
+
+    @Provides
+    @Singleton
     fun provideProblemsStore(
         problemDao: ProblemDao,
-        submissionDao: SubmissionDao
-    ): ProblemStore = LocalProblemStore(problemDao, submissionDao)
+        submissionDao: SubmissionDao,
+        submissionFeedbackDao: SubmissionFeedbackDao
+    ): ProblemStore = LocalProblemStore(problemDao, submissionDao, submissionFeedbackDao)
 
     @Provides
     @Singleton

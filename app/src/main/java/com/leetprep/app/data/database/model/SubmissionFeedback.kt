@@ -12,19 +12,28 @@ import kotlinx.serialization.Serializable
     tableName = "submission_feedback",
     foreignKeys = [
         ForeignKey(
-            entity = Submission::class,
+            entity = Problem::class,
             parentColumns = ["id"],
-            childColumns = ["submission_id"],
+            childColumns = ["problem_id"],
             onDelete = ForeignKey.CASCADE
         )
     ],
     indices = [
-        Index("submission_id", unique = true)
+        Index("problem_id", unique = true)
     ]
 )
 @Serializable
 data class SubmissionFeedback(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    @ColumnInfo(name = "submission_id") val submissionId: Long,
-    @ColumnInfo(name = "message") val message: String
+    @ColumnInfo(name = "problem_id") val problemId: Long,
+    @ColumnInfo(name = "feedback_items") val feedbackItems: List<FeedbackItem>,
+    @ColumnInfo(name = "correct") val correct: Boolean
 )
+
+@Serializable
+data class FeedbackItem(
+    val title : String,
+    val message: String
+)
+
+

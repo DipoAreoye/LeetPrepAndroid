@@ -30,8 +30,11 @@ android {
         }
 
         // Set the API key in BuildConfig
-        val apiKeyName: String = properties.getProperty("SUPABASE_KEY") ?: "defaultKey"
+        var apiKeyName: String = properties.getProperty("SUPABASE_KEY") ?: "defaultKey"
         buildConfigField("String", "SUPABASE_KEY", "\"$apiKeyName\"")
+
+        apiKeyName = properties.getProperty("OPEN_AI_KEY") ?: "defaultKey"
+        buildConfigField("String", "OPEN_AI_KEY", "\"$apiKeyName\"")
     }
 
     buildTypes {
@@ -105,5 +108,6 @@ dependencies {
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
-
+    //openAI
+    implementation ("com.aallam.openai:openai-client:3.7.1")
 }

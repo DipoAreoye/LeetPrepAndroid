@@ -10,13 +10,12 @@ import com.leetprep.app.data.database.model.SubmissionFeedback
 import kotlinx.coroutines.flow.Flow
 @Dao
 interface SubmissionFeedbackDao {
-    @Query("SELECT * FROM submission_feedback WHERE submission_id = :submissionId")
-    fun feedbackWithSubmissionId(submissionId: Long): Flow<SubmissionFeedback>
+    @Query("SELECT * FROM submission_feedback WHERE problem_id = :problemId")
+    fun feedbackWithProblemId(problemId: Long): Flow<SubmissionFeedback>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(entities: Submission)
+    suspend fun insert(entities: SubmissionFeedback)
 
     @Delete
-    suspend fun delete(submission: Submission)
-
+    suspend fun delete(submission: SubmissionFeedback)
 }

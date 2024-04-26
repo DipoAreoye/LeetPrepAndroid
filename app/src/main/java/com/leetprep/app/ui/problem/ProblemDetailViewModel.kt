@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.leetprep.app.data.ProblemStore
 import com.leetprep.app.data.database.model.Problem
 import com.leetprep.app.data.database.model.Submission
+import com.leetprep.app.data.database.model.SubmissionFeedback
+import com.leetprep.app.data.domain.SubmitSolutionUseCase
+import com.leetprep.app.data.domain.SubmitSolutionUseCaseTest
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -20,23 +23,27 @@ sealed interface ProblemDetailViewSate {
     data class Ready (
         val problem: Problem,
         val submission: Submission?,
+        val feedback: SubmissionFeedback?
     ) : ProblemDetailViewSate
 }
 
 @HiltViewModel(assistedFactory = ProblemDetailViewModel.Factory::class)
 class ProblemDetailViewModel @AssistedInject constructor(
-    val problemStore: ProblemStore,
+    private val problemStore: ProblemStore,
+    private val submitSolutionUseCase: SubmitSolutionUseCaseTest,
     @Assisted private val problemId: Long,
 ) : ViewModel() {
 
     val state : StateFlow<ProblemDetailViewSate> =
      combine(
          problemStore.problemWithId(problemId),
-         problemStore.submissionWithProblemId(problemId)
-     ){ problem, submission ->
+         problemStore.submissionWithProblemId(problemId),
+         problemStore.submissionFeedbackWithProblemId(problemId)
+     ){ problem, submission, feedback ->
          ProblemDetailViewSate.Ready(
              problem,
-             submission
+             submission,
+             feedback
          )
      }.stateIn(
          scope = viewModelScope,
@@ -44,7 +51,21 @@ class ProblemDetailViewModel @AssistedInject constructor(
          initialValue = ProblemDetailViewSate.Loading
      )
 
-     fun updateSubmission(text: String) {
+    fun submit(text: String) {
+        val s = state.value
+        if (s is ProblemDetailViewSate.Ready) {
+            viewModelScope.launch {
+                submitSolutionUseCase(
+                    Submission(
+                        text = text,
+                        problemId = problemId
+                    ),
+                    s.problem.desc
+                )
+            }
+        }
+    }
+    fun updateSubmission(text: String) {
         val currentState = state.value
         if (currentState is ProblemDetailViewSate.Ready) {
             val newSubmission = when {
