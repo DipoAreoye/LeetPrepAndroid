@@ -1,8 +1,8 @@
 package com.leetprep.app.ui.problem
 
-import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,19 +12,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
@@ -33,27 +35,35 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.leetprep.app.R
 import com.leetprep.app.data.database.model.FeedbackItem
 import com.leetprep.app.data.database.model.Problem
 import com.leetprep.app.data.database.model.Submission
-import com.leetprep.app.data.database.model.SubmissionFeedback
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ProblemDetailScreen(
     viewModel: ProblemDetailViewModel,
     navigateBack: () -> Unit,
     ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val scope = rememberCoroutineScope()
+
     when (val s = state) {
         is ProblemDetailViewSate.Loading -> {
 
@@ -63,6 +73,18 @@ fun ProblemDetailScreen(
                 s.problem,
                 s.submission,
                 navigateBack = navigateBack,
+                selectedTab = s.selectedTab,
+                onTabSelected = {
+                    viewModel.onTabSelected(it)
+                    val page = when(it) {
+                        Tab.PROBELM -> 0
+                        Tab.SOLUTION -> 1
+                    }
+                    scope.launch {
+                        pagerState.scrollToPage(page)
+                    }
+                },
+                pagerState = pagerState,
                 onUpdateSubmission = {
                     viewModel.updateSubmission(it)
                 },
@@ -72,6 +94,17 @@ fun ProblemDetailScreen(
             )
         }
     }
+
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.currentPage }
+            .collectLatest { page ->
+                val tab = when (page) {
+                    0 -> Tab.PROBELM
+                    else -> {Tab.SOLUTION}
+                }
+                viewModel.onTabSelected(tab)
+            }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -79,6 +112,9 @@ fun ProblemDetailScreen(
 fun ProblemDetailScreen(
     problem: Problem,
     submission: Submission?,
+    selectedTab: Tab,
+    onTabSelected: (Tab) -> Unit,
+    pagerState: PagerState,
     onUpdateSubmission: (text: String) -> Unit,
     navigateBack: () -> Unit,
     onSubmit: (text: String) -> Unit
@@ -106,11 +142,11 @@ fun ProblemDetailScreen(
         Column(
             modifier = Modifier.padding(contentPadding)
         ) {
-            Surface(contentColor = Color.White) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    val pagerState = rememberPagerState(pageCount = { 2 })
+            Surface(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = Color.White) {
+                Column {
+                    ProblemSolutionTabs(selectedTab, onTabSelected)
                     HorizontalPager(state = pagerState) { page ->
                         when (page) {
                             0 -> ProblemDescription(problem = problem)
@@ -126,7 +162,35 @@ fun ProblemDetailScreen(
         }
 
     }
+}
 
+@Composable
+fun ProblemSolutionTabs(
+    selectedTab: Tab,
+    onTabSelected: (Tab) -> Unit
+) {
+    val tabs = listOf(Tab.PROBELM, Tab.SOLUTION )
+
+    TabRow(
+        selectedTabIndex = tabs.indexOf(selectedTab),
+        modifier = Modifier.padding(horizontal = 16.dp),
+    ) {
+        tabs.map { tab ->
+            Tab(
+                selected = tab == selectedTab,
+                onClick = {
+                    onTabSelected(tab)
+                },
+                text = {
+                    Text(
+                        text = tab.title,
+                        modifier = Modifier.padding()
+                    )
+                }
+            )
+        }
+
+    }
 }
 
 @Composable
@@ -184,39 +248,10 @@ fun SubmissionTextField (
         Column(
             modifier = Modifier.align(Alignment.BottomEnd)
         ) {
-            HorizontalDivider (
-                color = Color.White,
-                modifier = Modifier
-                    .height(1.dp)
-                    .fillMaxWidth()
+            FeedbackCard(
+                feedback = FeedbackItem("Use a Hashmap", "consider using a hashmap...")
             )
-
-            Row(
-            ) {
-                Spacer(Modifier.weight(1f))
-                TextButton(
-                    onClick = {
-                        Log.d("button", "clicked")
-                    }) {
-                    Text(
-                        color = Color.White,
-                        text = "Result"
-                    )
-                }
-                TextButton(
-                    onClick = {
-                        onSubmitClick(text)
-                    }) {
-                    Text(
-                        color = Color.White,
-                        text = "Submit"
-                    )
-                }
-            }
         }
-
-
-
     }
 
     LaunchedEffect(key1 = text) {
@@ -225,33 +260,64 @@ fun SubmissionTextField (
     }
 }
 
-
 @Composable
-fun FeedbackDialog(
-    feedback: FeedbackItem,
-    onDismissRequest: () -> Unit
+fun FeedbackCard(
+    modifier: Modifier = Modifier,
+    feedback: FeedbackItem? = null
 ) {
-    Dialog(onDismissRequest = onDismissRequest) {
-            Card(
-                modifier = Modifier
-                    .height(375.dp)
-                    .fillMaxWidth()
-            ) {
-                Surface(
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = modifier
+            .height(if (isExpanded) 275.dp else 56.dp)
+            .fillMaxWidth(),
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            contentColor = Color.White,
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Column {
+                Row(
                     modifier = Modifier
-                        .fillMaxSize(),
-                    contentColor = Color.White,
-                    color = Color.Black,
+                        .fillMaxWidth()
+                        .padding(8.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(16.dp)
+                    IconButton(
+                        onClick = {
+                        }
                     ) {
-                        Text(text = feedback.title)
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = ""
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    IconButton(
+                        onClick = {
+                            if (feedback != null) {
+                                isExpanded = !isExpanded
+                            }
+                        }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.baseline_keyboard_arrow_down),
+                            contentDescription = ""
+                        )
+                    }
+                }
+
+                AnimatedVisibility(visible = isExpanded) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(text = feedback!!.title)
                         Text(text = feedback.message)
                     }
                 }
             }
+        }
     }
 }
 
@@ -268,14 +334,14 @@ fun SubmissionTextPreview() {
 @Preview
 @Composable
 fun FeedbackDialogPreview() {
-    FeedbackDialog(
+    FeedbackCard(
+        modifier = Modifier,
         FeedbackItem(
             title = "Use a hashmap",
             message = "This is a nonsense message and " +
                     "doesn't mean anything, but please use a hashmap"
         )
-    ) {
-    }
+    )
 }
 
 

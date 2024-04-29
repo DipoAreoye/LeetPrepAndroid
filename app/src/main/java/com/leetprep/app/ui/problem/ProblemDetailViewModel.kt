@@ -12,8 +12,10 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -23,8 +25,16 @@ sealed interface ProblemDetailViewSate {
     data class Ready (
         val problem: Problem,
         val submission: Submission?,
-        val feedback: SubmissionFeedback?
+        val feedback: SubmissionFeedback?,
+        val selectedTab: Tab = Tab.PROBELM,
     ) : ProblemDetailViewSate
+
+}
+enum class Tab(
+    val title: String
+) {
+    PROBELM(title = "Problem"),
+    SOLUTION(title = "Solution")
 }
 
 @HiltViewModel(assistedFactory = ProblemDetailViewModel.Factory::class)
@@ -34,22 +44,34 @@ class ProblemDetailViewModel @AssistedInject constructor(
     @Assisted private val problemId: Long,
 ) : ViewModel() {
 
-    val state : StateFlow<ProblemDetailViewSate> =
-     combine(
-         problemStore.problemWithId(problemId),
-         problemStore.submissionWithProblemId(problemId),
-         problemStore.submissionFeedbackWithProblemId(problemId)
-     ){ problem, submission, feedback ->
-         ProblemDetailViewSate.Ready(
-             problem,
-             submission,
-             feedback
-         )
-     }.stateIn(
-         scope = viewModelScope,
-         started = SharingStarted.Eagerly,
-         initialValue = ProblemDetailViewSate.Loading
-     )
+    private val _selectedTab = MutableStateFlow(Tab.PROBELM)
+    private var _state = MutableStateFlow<ProblemDetailViewSate>(ProblemDetailViewSate.Loading)
+    val state: StateFlow<ProblemDetailViewSate>
+        get() = _state
+
+    init {
+        viewModelScope.launch {
+            combine(
+                _selectedTab,
+                problemStore.problemWithId(problemId),
+                problemStore.submissionWithProblemId(problemId),
+                problemStore.submissionFeedbackWithProblemId(problemId)
+            ){ selectedTab, problem, submission, feedback ->
+                ProblemDetailViewSate.Ready(
+                    problem,
+                    submission,
+                    feedback,
+                    selectedTab
+                )
+            }.stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = ProblemDetailViewSate.Loading
+            ).collect {
+                _state.value = it
+            }
+        }
+    }
 
     fun submit(text: String) {
         val s = state.value
@@ -85,6 +107,10 @@ class ProblemDetailViewModel @AssistedInject constructor(
                 problemStore.updateSubmission(newSubmission)
             }
         }
+    }
+
+    fun onTabSelected(tab: Tab) {
+        _selectedTab.value = tab
     }
     @AssistedFactory
     interface Factory {

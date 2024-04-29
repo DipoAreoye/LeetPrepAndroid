@@ -3,23 +3,28 @@ package com.leetprep.app.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leetprep.app.data.database.model.Problem
+import com.leetprep.app.ui.theme.LeetPrepAndroidTheme
 
 @Composable
 fun HomeScreen(
@@ -32,18 +37,17 @@ fun HomeScreen(
             homeAppBar()
         }
     ) { padding ->
-        LazyColumn(modifier = Modifier.padding(padding), userScrollEnabled = true) {
-            itemsIndexed(state.problems) {index, item ->
-                ProblemListItem(item, index, navigateToProblemDetail)
-            }
-        }
+        ProblemList(
+            padding,
+            state.problems,
+            navigateToProblemDetail
+        )
     }
 }
 
 @Composable
 fun homeAppBar() {
     Row(modifier = Modifier
-        .background(Color.Black)
         .fillMaxWidth()
         .padding(8.dp)
     ) {
@@ -56,9 +60,25 @@ fun homeAppBar() {
     }
 }
 @Composable
+fun ProblemList(
+    padding: PaddingValues,
+    problems: List<Problem>,
+    navigateToProblemDetail: (Int) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.padding(padding),
+        userScrollEnabled = true) {
+        itemsIndexed(problems) {index, item ->
+            ProblemListItem(item, index, navigateToProblemDetail)
+        }
+    }
+}
+
+@Composable
 fun ProblemListItem(problem: Problem, index: Int, navigateToProblem: (Int) -> Unit) {
     val bgColor = if (index % 2 == 0)
-        Color.Gray else Color.Black
+        MaterialTheme.colorScheme.secondaryContainer
+            else MaterialTheme.colorScheme.primaryContainer
 
     val problemColor = when (problem.difficulty) {
         1 -> Color.Green
@@ -69,7 +89,7 @@ fun ProblemListItem(problem: Problem, index: Int, navigateToProblem: (Int) -> Un
 
     Row(modifier = Modifier
         .fillMaxWidth()
-        .background(bgColor)
+        .background(color = bgColor)
         .padding(12.dp)
         .clickable {
             navigateToProblem(problem.id)
@@ -95,3 +115,38 @@ fun ProblemListItem(problem: Problem, index: Int, navigateToProblem: (Int) -> Un
         }
     }
 }
+
+@Preview
+@Composable
+fun homeAppBarPreview() {
+    homeAppBar()
+}
+
+
+@Preview
+@Composable
+fun problemList() {
+    val problem1 = Problem(
+        id = 0,
+        title = "Two Sum",
+        difficulty = 1,
+        desc = "bla bla",
+    )
+
+    val problem2 = Problem(
+        id = 0,
+        title = "Valid Parenthesis",
+        difficulty = 1,
+        desc = "bla bla",
+    )
+
+
+    val problems = listOf(problem1, problem2)
+
+    LeetPrepAndroidTheme {
+        Surface(tonalElevation = 5.dp){
+            ProblemList(padding = PaddingValues(), problems = problems, {})
+        }
+    }
+}
+
