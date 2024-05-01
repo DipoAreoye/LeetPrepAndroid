@@ -28,10 +28,26 @@ data class SubmissionFeedback(
     @ColumnInfo(name = "problem_id") val problemId: Long,
     @ColumnInfo(name = "feedback_items") val feedbackItems: List<FeedbackItem>,
     @ColumnInfo(name = "correct") val correct: Boolean
-)
+) {
+    fun getSolutionRating() : SolutionRating {
+        if (correct) {
+            return if (feedbackItems.isEmpty()) {
+                SolutionRating.CORRECT
+            } else {
+                SolutionRating.NEEDS_IMPROVEMENT
+            }
+        }
+        return SolutionRating.INCORRECT
+    }
+}
+
 
 @Serializable
 data class FeedbackItem(
     val title : String,
     val message: String
 )
+
+enum class SolutionRating{
+    CORRECT,NEEDS_IMPROVEMENT,INCORRECT
+}

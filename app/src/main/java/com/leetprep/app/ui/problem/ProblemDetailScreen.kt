@@ -2,6 +2,7 @@ package com.leetprep.app.ui.problem
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
@@ -18,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,19 +44,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.leetprep.app.R
 import com.leetprep.app.data.database.model.FeedbackItem
 import com.leetprep.app.data.database.model.Problem
+import com.leetprep.app.data.database.model.SolutionRating
 import com.leetprep.app.data.database.model.Submission
-import kotlinx.coroutines.coroutineScope
+import com.leetprep.app.data.database.model.SubmissionFeedback
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -72,12 +82,13 @@ fun ProblemDetailScreen(
             ProblemDetailScreen(
                 s.problem,
                 s.submission,
+                s.feedback,
                 navigateBack = navigateBack,
                 selectedTab = s.selectedTab,
                 onTabSelected = {
                     viewModel.onTabSelected(it)
                     val page = when(it) {
-                        Tab.PROBELM -> 0
+                        Tab.PROBLEM -> 0
                         Tab.SOLUTION -> 1
                     }
                     scope.launch {
@@ -88,8 +99,9 @@ fun ProblemDetailScreen(
                 onUpdateSubmission = {
                     viewModel.updateSubmission(it)
                 },
+                isSubmitting = s.submitting,
                 onSubmit = {
-                    viewModel.submit(it)
+                    viewModel.submit()
                 }
             )
         }
@@ -97,12 +109,15 @@ fun ProblemDetailScreen(
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }
+            .flowOn(Dispatchers.Default) // Switch to a background thread
             .collectLatest { page ->
                 val tab = when (page) {
-                    0 -> Tab.PROBELM
-                    else -> {Tab.SOLUTION}
+                    0 -> Tab.PROBLEM
+                    else -> Tab.SOLUTION
                 }
-                viewModel.onTabSelected(tab)
+                withContext(Dispatchers.Main) { // Switch back to the main thread for UI updates
+                    viewModel.onTabSelected(tab)
+                }
             }
     }
 }
@@ -112,12 +127,14 @@ fun ProblemDetailScreen(
 fun ProblemDetailScreen(
     problem: Problem,
     submission: Submission?,
+    submissionFeedback: SubmissionFeedback?,
     selectedTab: Tab,
     onTabSelected: (Tab) -> Unit,
     pagerState: PagerState,
     onUpdateSubmission: (text: String) -> Unit,
     navigateBack: () -> Unit,
-    onSubmit: (text: String) -> Unit
+    isSubmitting: Boolean,
+    onSubmit: () -> Unit
 ) {
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -152,6 +169,8 @@ fun ProblemDetailScreen(
                             0 -> ProblemDescription(problem = problem)
                             1 -> SubmissionTextField(
                                 submission?.text,
+                                submissionFeedback,
+                                isSubmitting,
                                 onUpdateSubmission,
                                 onSubmit)
                         }
@@ -169,7 +188,7 @@ fun ProblemSolutionTabs(
     selectedTab: Tab,
     onTabSelected: (Tab) -> Unit
 ) {
-    val tabs = listOf(Tab.PROBELM, Tab.SOLUTION )
+    val tabs = listOf(Tab.PROBLEM, Tab.SOLUTION )
 
     TabRow(
         selectedTabIndex = tabs.indexOf(selectedTab),
@@ -196,7 +215,9 @@ fun ProblemSolutionTabs(
 @Composable
 fun ProblemDescription(problem: Problem) {
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
     ) {
         Text(
             modifier = Modifier.padding(
@@ -205,6 +226,7 @@ fun ProblemDescription(problem: Problem) {
                 end = 0.dp,
                 bottom = 16.dp
             ),
+            fontWeight = FontWeight.Bold,
             text = problem.getDifficultyString()
         )
         Text(problem.desc)
@@ -214,8 +236,10 @@ fun ProblemDescription(problem: Problem) {
 @Composable
 fun SubmissionTextField (
     initialText: String?,
+    submissionFeedback: SubmissionFeedback?,
+    isSubmitting: Boolean,
     onUpdateText: (text: String) -> Unit,
-    onSubmitClick: (text: String) -> Unit,
+    onSubmitClick: () -> Unit,
 ) {
     var text by remember { mutableStateOf(initialText ?: "") }
     Box(
@@ -246,10 +270,14 @@ fun SubmissionTextField (
         )
 
         Column(
-            modifier = Modifier.align(Alignment.BottomEnd)
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(12.dp)
         ) {
             FeedbackCard(
-                feedback = FeedbackItem("Use a Hashmap", "consider using a hashmap...")
+                isSubmitting = isSubmitting,
+                submissionFeedback = submissionFeedback,
+                onSubmitClick = onSubmitClick
             )
         }
     }
@@ -263,17 +291,31 @@ fun SubmissionTextField (
 @Composable
 fun FeedbackCard(
     modifier: Modifier = Modifier,
-    feedback: FeedbackItem? = null
+    isSubmitting: Boolean,
+    submissionFeedback: SubmissionFeedback? = null,
+    onSubmitClick: () -> Unit,
 ) {
     var isExpanded by remember { mutableStateOf(false) }
+    val titleText = when (submissionFeedback?.getSolutionRating()) {
+        SolutionRating.CORRECT -> "Solution Correct"
+        SolutionRating.NEEDS_IMPROVEMENT -> "Solution Accepted"
+        SolutionRating.INCORRECT -> "Solution Incorrect"
+        else -> ""
+    }
+    val titleColor = when (submissionFeedback?.getSolutionRating()) {
+        SolutionRating.CORRECT -> Color.Green
+        SolutionRating.NEEDS_IMPROVEMENT -> Color.Yellow
+        SolutionRating.INCORRECT -> Color.Red
+        else -> Color.White
+    }
+
+    val feedback = submissionFeedback?.feedbackItems?.first()
 
     Card(
         modifier = modifier
-            .height(if (isExpanded) 275.dp else 56.dp)
-            .fillMaxWidth(),
     ) {
         Surface(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.wrapContentSize(),
             contentColor = Color.White,
             color = MaterialTheme.colorScheme.primaryContainer
         ) {
@@ -281,17 +323,32 @@ fun FeedbackCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp)
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
-                        onClick = {
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = ""
+                    if (isSubmitting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .width(24.dp)
+                                .height(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         )
+                    } else {
+                        IconButton(onClick = { onSubmitClick() }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "send"
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    Text(
+                        text = titleText,
+                        color = titleColor
+                    )
                     Spacer(modifier = Modifier.weight(1f))
 
                     IconButton(
@@ -303,16 +360,23 @@ fun FeedbackCard(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_keyboard_arrow_down),
-                            contentDescription = ""
+                            contentDescription = if (isExpanded) "minimize" else "expand",
+                            modifier = Modifier.rotate(
+                                if (isExpanded) 0f else 180f
+                            )
                         )
                     }
                 }
 
-                AnimatedVisibility(visible = isExpanded) {
+                AnimatedVisibility(visible = isExpanded && feedback != null) {
                     Column(
-                        modifier = Modifier.padding(16.dp)
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        Text(text = feedback!!.title)
+                        Text(
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            text = feedback!!.title
+                        )
                         Text(text = feedback.message)
                     }
                 }
@@ -325,8 +389,10 @@ fun FeedbackCard(
 @Composable
 fun SubmissionTextPreview() {
     SubmissionTextField(
-        initialText = "This is a test Teextfield",
+        initialText = "This is a test Textfield",
+        submissionFeedback = null,
         onUpdateText = {},
+        isSubmitting = false,
         onSubmitClick = {}
     )
 }
@@ -336,11 +402,8 @@ fun SubmissionTextPreview() {
 fun FeedbackDialogPreview() {
     FeedbackCard(
         modifier = Modifier,
-        FeedbackItem(
-            title = "Use a hashmap",
-            message = "This is a nonsense message and " +
-                    "doesn't mean anything, but please use a hashmap"
-        )
+        isSubmitting = true,
+        onSubmitClick = {}
     )
 }
 

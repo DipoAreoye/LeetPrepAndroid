@@ -56,9 +56,6 @@ class SubmitSolutionUseCase @Inject constructor(
         val choice = completion.choices.firstOrNull()
         val content = choice?.message
             ?: throw IllegalStateException("Expected content, but found null")
-            // Get the content, safely handling nulls
-
-        content.content?.let { Log.d("json", it) }
 
         val response = content.content?.let { JSONObject(it) }  // Convert to JSONObject
         return SubmissionFeedback(

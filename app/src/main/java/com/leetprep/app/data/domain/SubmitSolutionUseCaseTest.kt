@@ -1,5 +1,6 @@
 package com.leetprep.app.data.domain;
 
+import android.util.Log
 import com.leetprep.app.data.ProblemStore
 import com.leetprep.app.data.database.model.FeedbackItem
 import com.leetprep.app.data.database.model.Submission
@@ -16,9 +17,8 @@ class SubmitSolutionUseCaseTest @Inject constructor(
      suspend operator fun invoke(submission: Submission, problemDesc: String): SubmissionFeedback {
          delay(200)
          val feedback = SubmissionFeedback(
-            id = 0L,
             problemId = submission.problemId,
-            feedbackItems = listOf(FeedbackItem(title = "", message = "")),
+            feedbackItems = listOf(FeedbackItem(title = "Use HashMap", message = "store elements for O(1) retrieval")),
             correct = false
         )
 
